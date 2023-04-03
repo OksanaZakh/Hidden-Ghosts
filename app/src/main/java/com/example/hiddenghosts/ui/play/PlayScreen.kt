@@ -2,13 +2,13 @@ package com.example.hiddenghosts.ui.play
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,12 +33,13 @@ fun PlayScreen(
     viewModel: PlayViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.observeAsState()
+    val itemsList = viewModel.gridItems.observeAsState()
 
     viewModel.level = level ?: 0
 
     PlayScreenContent(
         score = (uiState as? PlayUIState.Playing)?.score ?: 0,
-        items = (uiState as? PlayUIState.Playing)?.items ?: (uiState as? PlayUIState.Preview)?.items ?: emptyList(),
+        items = itemsList.value ?: emptyList(),
         onRestartClick = { viewModel.startGame() },
         isPreview = (uiState as? PlayUIState.Preview) != null,
         onItemClick = viewModel::onItemClick
@@ -108,9 +109,9 @@ fun PlayScreenContent(
                 columns = GridCells.Fixed(columnsNumber), content = {
                     items(items.size) { index ->
                         when (getGridState(item = items[index], isPreview = isPreview)) {
-                            GridSate.WRONG -> WrongCard(onItemClick = { onItemClick(index) })
+                            GridSate.WRONG -> WrongCard()
                             GridSate.DEFAULT -> DefaultCard(onItemClick = { onItemClick(index) })
-                            GridSate.SUCCESS -> CorrectCard(onItemClick = { onItemClick(index) })
+                            GridSate.SUCCESS -> CorrectCard()
                         }
                     }
                 })
@@ -134,16 +135,13 @@ fun getGridState(
 
 enum class GridSate { DEFAULT, SUCCESS, WRONG }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CorrectCard(
-    onItemClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
             .padding(2.dp),
-        shape = RoundedCornerShape(2.dp),
-        onClick = { onItemClick() }
+        shape = RoundedCornerShape(2.dp)
     ) {
         Box(
             modifier = Modifier
@@ -158,16 +156,12 @@ fun CorrectCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WrongCard(
-    onItemClick: () -> Unit = {}
-) {
+fun WrongCard() {
     Card(
         modifier = Modifier
             .padding(2.dp),
-        shape = RoundedCornerShape(2.dp),
-        onClick = { onItemClick() }
+        shape = RoundedCornerShape(2.dp)
     ) {
         Box(
             modifier = Modifier
@@ -182,7 +176,6 @@ fun WrongCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DefaultCard(
     onItemClick: () -> Unit = {}
@@ -191,12 +184,12 @@ fun DefaultCard(
         modifier = Modifier
             .padding(2.dp),
         shape = RoundedCornerShape(2.dp),
-        onClick = { onItemClick() }
     ) {
         Box(
             modifier = Modifier
                 .background(color = GhostColor.DefaultCellColor)
                 .fillMaxSize()
+                .clickable { onItemClick() }
         ) {
             Image(
                 painter = painterResource(id = R.drawable.ic_general),
@@ -205,4 +198,3 @@ fun DefaultCard(
         }
     }
 }
-

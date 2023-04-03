@@ -21,10 +21,14 @@ class PlayViewModel @Inject constructor(
     private val _uiState: MutableLiveData<PlayUIState> = MutableLiveData(PlayUIState.Loading)
     val uiState: LiveData<PlayUIState> = _uiState
 
+    private val _gridItems: MutableLiveData<List<GridItem>> = MutableLiveData(emptyList())
+    val gridItems: LiveData<List<GridItem>> = _gridItems
+
     var level = 0
     private var score = 0
     private var attempt = 0
     private var levelInfo: LevelInfo? = null
+    private var listenClicks = true
     private var gridItemsList: MutableList<GridItem> = mutableListOf()
 
     init {
@@ -36,29 +40,30 @@ class PlayViewModel @Inject constructor(
             _uiState.value = PlayUIState.Loading
             val list = generateGhostsList(level)
             gridItemsList = list
+            _gridItems.value = list
             delay(1000)
-            _uiState.value = PlayUIState.Preview(list)
+            _uiState.value = PlayUIState.Preview
             delay(1000)
             score = 0
             attempt = 0
-            _uiState.value = PlayUIState.Playing(items = list, score = score)
+            _uiState.value = PlayUIState.Playing(score = score)
+            listenClicks = true
         }
     }
 
     fun onItemClick(index: Int) {
+        if (!listenClicks) return
+        listenClicks = false
         val item = gridItemsList[index]
         gridItemsList[index] = GridItem(false, item.isGhost)
         val ghostsNum = levelInfo?.ghosts ?: 0
-        if (item.isGhost) {
-            score += 5
-        }
+        if (item.isGhost) { score += 5 }
         attempt += 1
         if (score < ghostsNum * 5 && attempt < ghostsNum) {
-            _uiState.value = PlayUIState.Playing(items = gridItemsList, score = score)
+            _uiState.value = PlayUIState.Playing(score = score)
+            listenClicks = true
         } else {
             viewModelScope.launch {
-                _uiState.value = PlayUIState.Playing(items = gridItemsList, score = score)
-                delay(1000)
                 _uiState.value = PlayUIState.Finish(score)
             }
         }
@@ -71,7 +76,7 @@ class PlayViewModel @Inject constructor(
             val ghostsCount = it.ghosts
             val randomIntList = generateNumberList(it.grid.x * it.grid.x)
             for (item in randomIntList) {
-                gridItems.add(GridItem(isGhost = item < ghostsCount))
+                gridItems.add(GridItem(isGhost = item < ghostsCount, isClosed = true))
             }
         }
         return gridItems
