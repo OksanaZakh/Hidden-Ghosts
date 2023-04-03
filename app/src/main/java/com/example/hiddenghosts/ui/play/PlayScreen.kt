@@ -1,4 +1,4 @@
-package com.example.hiddenghosts.ui
+package com.example.hiddenghosts.ui.play
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,8 +24,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.hiddenghosts.R
 import com.example.hiddenghosts.data.GridItem
-import com.example.hiddenghosts.ui.play.PlayUIState
-import com.example.hiddenghosts.ui.play.PlayViewModel
 import com.example.hiddenghosts.ui.theme.*
 
 @Composable
@@ -36,13 +33,12 @@ fun PlayScreen(
     viewModel: PlayViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.observeAsState()
-    val ghostItems by viewModel.gridItems.observeAsState()
 
     viewModel.level = level ?: 0
 
     PlayScreenContent(
         score = (uiState as? PlayUIState.Playing)?.score ?: 0,
-        items = ghostItems ?: emptyList(),
+        items = (uiState as? PlayUIState.Playing)?.items ?: (uiState as? PlayUIState.Preview)?.items ?: emptyList(),
         onRestartClick = { viewModel.startGame() },
         isPreview = (uiState as? PlayUIState.Preview) != null,
         onItemClick = viewModel::onItemClick
@@ -111,9 +107,11 @@ fun PlayScreenContent(
                 ),
                 columns = GridCells.Fixed(columnsNumber), content = {
                     items(items.size) { index ->
-                        GridItem(item = items[index],
-                            isPreview = isPreview,
-                            onItemClick = { onItemClick(index) })
+                        when (getGridState(item = items[index], isPreview = isPreview)) {
+                            GridSate.WRONG -> WrongCard(onItemClick = { onItemClick(index) })
+                            GridSate.DEFAULT -> DefaultCard(onItemClick = { onItemClick(index) })
+                            GridSate.SUCCESS -> CorrectCard(onItemClick = { onItemClick(index) })
+                        }
                     }
                 })
         }
@@ -121,20 +119,20 @@ fun PlayScreenContent(
 }
 
 @Composable
-fun GridItem(
+fun getGridState(
     item: GridItem,
-    isPreview: Boolean,
-    onItemClick: () -> Unit = {}
-) {
-    if (isPreview) {
-        if (item.isGhost) CorrectCard(onItemClick) else DefaultCard(onItemClick)
+    isPreview: Boolean
+) = if (isPreview) {
+    if (item.isGhost) GridSate.SUCCESS else GridSate.DEFAULT
+} else {
+    if (item.isClosed) {
+        GridSate.DEFAULT
     } else {
-        if (item.isClosed) DefaultCard(onItemClick)
-        else if (item.isGhost) {
-            CorrectCard(onItemClick)
-        } else WrongCard(onItemClick)
+        if (item.isGhost) GridSate.SUCCESS else GridSate.WRONG
     }
 }
+
+enum class GridSate { DEFAULT, SUCCESS, WRONG }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

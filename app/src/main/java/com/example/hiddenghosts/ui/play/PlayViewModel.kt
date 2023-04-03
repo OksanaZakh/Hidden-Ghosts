@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hiddenghosts.data.GridItem
+import com.example.hiddenghosts.data.LevelInfo
 import com.example.hiddenghosts.repo.Repository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
@@ -20,10 +21,11 @@ class PlayViewModel @Inject constructor(
     private val _uiState: MutableLiveData<PlayUIState> = MutableLiveData(PlayUIState.Loading)
     val uiState: LiveData<PlayUIState> = _uiState
 
-    private val _gridItems: MutableLiveData<List<GridItem>> = MutableLiveData(emptyList())
-    val gridItems: LiveData<List<GridItem>> = _gridItems
-
     var level = 0
+    private var score = 0
+    private var attempt = 0
+    private var levelInfo: LevelInfo? = null
+    private var gridItemsList: MutableList<GridItem> = mutableListOf()
 
     init {
         startGame()
@@ -33,27 +35,44 @@ class PlayViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = PlayUIState.Loading
             val list = generateGhostsList(level)
-            _gridItems.value = list
+            gridItemsList = list
             delay(1000)
-            _uiState.value = PlayUIState.Preview
+            _uiState.value = PlayUIState.Preview(list)
             delay(1000)
-            _uiState.value = PlayUIState.Playing(0)
+            score = 0
+            attempt = 0
+            _uiState.value = PlayUIState.Playing(items = list, score = score)
         }
     }
 
     fun onItemClick(index: Int) {
-        val list = _gridItems.value
-        val newList = list?.apply { get(index).isClosed = false }
-        _gridItems.value = newList?: emptyList()
+        val item = gridItemsList[index]
+        gridItemsList[index] = GridItem(false, item.isGhost)
+        val ghostsNum = levelInfo?.ghosts ?: 0
+        if (item.isGhost) {
+            score += 5
+        }
+        attempt += 1
+        if (score < ghostsNum * 5 && attempt < ghostsNum) {
+            _uiState.value = PlayUIState.Playing(items = gridItemsList, score = score)
+        } else {
+            viewModelScope.launch {
+                _uiState.value = PlayUIState.Playing(items = gridItemsList, score = score)
+                delay(1000)
+                _uiState.value = PlayUIState.Finish(score)
+            }
+        }
     }
 
-    private fun generateGhostsList(level: Int): List<GridItem> {
+    private fun generateGhostsList(level: Int): MutableList<GridItem> {
         val gridItems = mutableListOf<GridItem>()
-        val levelData = repository.getDataForLevel(level)
-        val ghostsCount = levelData.ghosts
-        val randomIntList = generateNumberList(levelData.grid.x * levelData.grid.x)
-        for (item in randomIntList) {
-            gridItems.add(GridItem(isGhost = item < ghostsCount))
+        levelInfo = repository.getDataForLevel(level)
+        levelInfo?.let { it ->
+            val ghostsCount = it.ghosts
+            val randomIntList = generateNumberList(it.grid.x * it.grid.x)
+            for (item in randomIntList) {
+                gridItems.add(GridItem(isGhost = item < ghostsCount))
+            }
         }
         return gridItems
     }

@@ -7,7 +7,7 @@ import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.hiddenghosts.ui.PlayScreen
+import com.example.hiddenghosts.ui.play.PlayScreen
 import com.example.hiddenghosts.ui.ResultsScreen
 import com.example.hiddenghosts.ui.WelcomeScreen
 
