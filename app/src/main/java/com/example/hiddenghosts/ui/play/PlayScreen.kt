@@ -24,27 +24,36 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.hiddenghosts.R
-import com.example.hiddenghosts.data.GridItem
 import com.example.hiddenghosts.ui.theme.*
+import kotlinx.coroutines.delay
 
 @Composable
 fun PlayScreen(
     level: Int? = null,
-    onFinish: (Int) -> Unit = {},
+    onFinish: (Int, Int) -> Unit = { _, _ -> },
     viewModel: PlayViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val itemsList = viewModel.gridItems.collectAsState()
 
     LaunchedEffect(level) {
         viewModel.startGame(level ?: 0)
     }
 
+    (uiState as? PlayUIState.Finish)?.let {
+        LaunchedEffect(Unit) {
+            delay(2000)
+            onFinish.invoke(it.score, (level ?: 0) + 1)
+        }
+    }
+
     PlayScreenContent(
-        score = (uiState as? PlayUIState.Playing)?.score ?: (uiState as? PlayUIState.Finish)?.score ?: 0,
-        items = itemsList.value,
+        score = (uiState as? PlayUIState.Playing)?.score
+            ?: (uiState as? PlayUIState.Finish)?.score ?: 0,
+        items = (uiState as? PlayUIState.Playing)?.items
+            ?: (uiState as? PlayUIState.Finish)?.items
+            ?: (uiState as? PlayUIState.Preview)?.items ?: emptyList(),
         onRestartClick = { viewModel.startGame(level ?: 0) },
-        isPreview = (uiState as? PlayUIState.Preview) != null,
+        passLevel = (uiState as? PlayUIState.Finish)?.passed,
         onItemClick = viewModel::onItemClick
     )
 }
@@ -53,8 +62,8 @@ fun PlayScreen(
 fun PlayScreenContent(
     score: Int = 0,
     onRestartClick: () -> Unit = {},
-    items: List<GridItem> = emptyList(),
-    isPreview: Boolean = false,
+    items: List<GridState> = emptyList(),
+    passLevel: Boolean? = null,
     onItemClick: (Int) -> Unit = {}
 ) {
     Box(
@@ -102,42 +111,38 @@ fun PlayScreenContent(
 
             val columnsNumber = if (items.size > 24) 5 else 4
 
-            LazyVerticalGrid(
-                contentPadding = PaddingValues(
-                    start = 30.dp,
-                    top = 38.dp,
-                    end = 30.dp,
-                    bottom = 16.dp
-                ),
-                columns = GridCells.Fixed(columnsNumber), content = {
-                    items(items.size) { index ->
-                        when (getGridState(item = items[index], isPreview = isPreview)) {
-                            GridSate.WRONG -> WrongCard()
-                            GridSate.DEFAULT -> DefaultCard(onItemClick = { onItemClick(index) })
-                            GridSate.SUCCESS -> CorrectCard()
+            Box(contentAlignment = Alignment.Center) {
+                LazyVerticalGrid(
+                    contentPadding = PaddingValues(
+                        start = 30.dp,
+                        top = 38.dp,
+                        end = 30.dp,
+                        bottom = 16.dp
+                    ),
+                    columns = GridCells.Fixed(columnsNumber), content = {
+                        items(items.size) { index ->
+                            when (items[index]) {
+                                GridState.DEFAULT -> DefaultCard(onItemClick = { onItemClick(index) })
+                                GridState.WRONG -> WrongCard()
+                                GridState.PREVIEW -> PreviewCard()
+                                GridState.SUCCESS -> SuccessCard()
+                            }
                         }
-                    }
-                })
+                    })
+
+                passLevel?.let {
+                    Image(
+                        painter = painterResource(id = if (it) R.drawable.ic_win else R.drawable.ic_fail),
+                        contentDescription = null
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-fun getGridState(
-    item: GridItem,
-    isPreview: Boolean
-) = if (isPreview) {
-    if (item.isGhost) GridSate.SUCCESS else GridSate.DEFAULT
-} else {
-    if (item.isClosed) {
-        GridSate.DEFAULT
-    } else {
-        if (item.isGhost) GridSate.SUCCESS else GridSate.WRONG
-    }
-}
-
-@Composable
-fun CorrectCard(
+fun PreviewCard(
 ) {
     Card(
         modifier = Modifier
@@ -146,7 +151,7 @@ fun CorrectCard(
     ) {
         Box(
             modifier = Modifier
-                .background(color = GhostColor.SuccessColor)
+                .background(color = GhostColor.PreviewColor)
                 .fillMaxSize()
         ) {
             Image(
@@ -200,4 +205,23 @@ fun DefaultCard(
     }
 }
 
-enum class GridSate { DEFAULT, SUCCESS, WRONG }
+@Composable
+fun SuccessCard(
+) {
+    Card(
+        modifier = Modifier
+            .padding(2.dp),
+        shape = RoundedCornerShape(2.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .background(color = GhostColor.SuccessColor)
+                .fillMaxSize()
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_ghost_1),
+                contentDescription = null
+            )
+        }
+    }
+}

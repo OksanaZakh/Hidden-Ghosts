@@ -27,12 +27,14 @@ object Play : GhostsDestination {
 object Results : GhostsDestination {
     override val route = "results"
     const val scoreTypeArg = "score"
-    val routeWithArgs = "${Play.route}/{$scoreTypeArg}"
+    const val levelTypeArg = "level"
+    val routeWithArgs = "${route}/{$scoreTypeArg}/{$levelTypeArg}"
     val arguments = listOf(
-        navArgument(scoreTypeArg) { type = NavType.StringType }
+        navArgument(scoreTypeArg) { type = NavType.IntType },
+        navArgument(levelTypeArg) { type = NavType.IntType }
     )
     val deepLinks = listOf(
-        navDeepLink { uriPattern = "hiddenghosts://$route/{$scoreTypeArg}" }
+        navDeepLink { uriPattern = "hiddenghosts://$route/{$scoreTypeArg}/{$levelTypeArg}" }
     )
 }
 

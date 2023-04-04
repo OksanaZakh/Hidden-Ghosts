@@ -14,6 +14,11 @@ private val InterFontFamily = FontFamily(
 
 val Typography = Typography(
     defaultFontFamily = InterFontFamily,
+    h1 = TextStyle(
+        fontWeight = FontWeight.W700,
+        fontSize = 72.sp,
+        lineHeight = 40.sp
+    ),
     h3 = TextStyle(
         fontWeight = FontWeight.W700,
         fontSize = 32.sp,

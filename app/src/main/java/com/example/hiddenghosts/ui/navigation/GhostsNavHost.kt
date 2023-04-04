@@ -34,13 +34,22 @@ fun GhostsNavHost(
                 navBackStackEntry.arguments?.getInt(Play.levelTypeArg)
             PlayScreen(
                 level = levelType,
-                onFinish = { navController.navigateSingleTopTo(Results.route) }
+                onFinish = { score, level -> navController.navigateToResultsScreen(score, level) }
             )
         }
-        composable(route = Results.route) {
+        composable(
+            route = Results.routeWithArgs,
+            arguments = Results.arguments,
+            deepLinks = Results.deepLinks
+        ) { navBackStackEntry ->
+            val scoreType =
+                navBackStackEntry.arguments?.getInt(Results.scoreTypeArg)
+            val levelType =
+                navBackStackEntry.arguments?.getInt(Results.levelTypeArg)
             ResultsScreen(
-                score = 0,
-                onNextLevel = { navController.navigateSingleTopTo(Play.route) })
+                score = scoreType,
+                level = levelType,
+                onNextLevel = { navController.navigateToPlayScreen(it) })
         }
     }
 }
@@ -59,4 +68,8 @@ fun NavHostController.navigateSingleTopTo(route: String) =
 
 private fun NavHostController.navigateToPlayScreen(level: Int) {
     this.navigateSingleTopTo("${Play.route}/$level")
+}
+
+private fun NavHostController.navigateToResultsScreen(score: Int, level: Int) {
+    this.navigateSingleTopTo("${Results.route}/$score/$level")
 }
