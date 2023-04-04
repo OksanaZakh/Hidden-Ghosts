@@ -11,8 +11,9 @@ import androidx.compose.material.*
 import androidx.compose.material3.Card
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,15 +33,17 @@ fun PlayScreen(
     onFinish: (Int) -> Unit = {},
     viewModel: PlayViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.observeAsState()
-    val itemsList = viewModel.gridItems.observeAsState()
+    val uiState by viewModel.uiState.collectAsState()
+    val itemsList = viewModel.gridItems.collectAsState()
 
-    viewModel.level = level ?: 0
+    LaunchedEffect(level) {
+        viewModel.startGame(level ?: 0)
+    }
 
     PlayScreenContent(
-        score = (uiState as? PlayUIState.Playing)?.score ?: 0,
-        items = itemsList.value ?: emptyList(),
-        onRestartClick = { viewModel.startGame() },
+        score = (uiState as? PlayUIState.Playing)?.score ?: (uiState as? PlayUIState.Finish)?.score ?: 0,
+        items = itemsList.value,
+        onRestartClick = { viewModel.startGame(level ?: 0) },
         isPreview = (uiState as? PlayUIState.Preview) != null,
         onItemClick = viewModel::onItemClick
     )
@@ -133,8 +136,6 @@ fun getGridState(
     }
 }
 
-enum class GridSate { DEFAULT, SUCCESS, WRONG }
-
 @Composable
 fun CorrectCard(
 ) {
@@ -198,3 +199,5 @@ fun DefaultCard(
         }
     }
 }
+
+enum class GridSate { DEFAULT, SUCCESS, WRONG }

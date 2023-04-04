@@ -7,6 +7,7 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
@@ -27,7 +28,7 @@ fun WelcomeScreen(
     onStartClick: (level: Int) -> Unit = {},
     viewModel: WelcomeViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.observeAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
     WelcomeScreenContent(
         onStartClick = onStartClick,

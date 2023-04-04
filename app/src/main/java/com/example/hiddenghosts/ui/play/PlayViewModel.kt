@@ -9,6 +9,9 @@ import com.example.hiddenghosts.data.LevelInfo
 import com.example.hiddenghosts.repo.Repository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.random.Random
@@ -18,24 +21,19 @@ class PlayViewModel @Inject constructor(
     private val repository: Repository
 ) : ViewModel() {
 
-    private val _uiState: MutableLiveData<PlayUIState> = MutableLiveData(PlayUIState.Loading)
-    val uiState: LiveData<PlayUIState> = _uiState
+    private val _uiState: MutableStateFlow<PlayUIState> = MutableStateFlow(PlayUIState.Loading)
+    val uiState: StateFlow<PlayUIState> = _uiState
 
-    private val _gridItems: MutableLiveData<List<GridItem>> = MutableLiveData(emptyList())
-    val gridItems: LiveData<List<GridItem>> = _gridItems
+    private val _gridItems: MutableStateFlow<List<GridItem>> = MutableStateFlow(emptyList())
+    val gridItems: StateFlow<List<GridItem>> = _gridItems
 
-    var level = 0
     private var score = 0
     private var attempt = 0
     private var levelInfo: LevelInfo? = null
     private var listenClicks = true
     private var gridItemsList: MutableList<GridItem> = mutableListOf()
 
-    init {
-        startGame()
-    }
-
-    fun startGame() {
+    fun startGame(level: Int) {
         viewModelScope.launch {
             _uiState.value = PlayUIState.Loading
             val list = generateGhostsList(level)
@@ -53,19 +51,21 @@ class PlayViewModel @Inject constructor(
 
     fun onItemClick(index: Int) {
         if (!listenClicks) return
-        listenClicks = false
-        val item = gridItemsList[index]
-        gridItemsList[index] = GridItem(false, item.isGhost)
-        val ghostsNum = levelInfo?.ghosts ?: 0
-        if (item.isGhost) { score += 5 }
-        attempt += 1
-        if (score < ghostsNum * 5 && attempt < ghostsNum) {
-            _uiState.value = PlayUIState.Playing(score = score)
-            listenClicks = true
-        } else {
-            viewModelScope.launch {
-                _uiState.value = PlayUIState.Finish(score)
+        viewModelScope.launch {
+            listenClicks = false
+            val item = gridItemsList[index].copy(isClosed = false)
+            gridItemsList[index] = item
+            _gridItems.update { gridItemsList }
+            val ghostsNum = levelInfo?.ghosts ?: 0
+            if (item.isGhost) {
+                score += 5
             }
+            attempt += 1
+            if (score < ghostsNum * 5 && attempt < ghostsNum) {
+                _uiState.value = PlayUIState.Playing(score = score)
+                listenClicks = true
+            } else
+                _uiState.value = PlayUIState.Finish(score)
         }
     }
 

@@ -1,3 +1,3 @@
 package com.example.hiddenghosts.data
 
-data class GridItem(var isClosed: Boolean = true, val isGhost: Boolean)
+data class GridItem(val isClosed: Boolean, val isGhost: Boolean)
