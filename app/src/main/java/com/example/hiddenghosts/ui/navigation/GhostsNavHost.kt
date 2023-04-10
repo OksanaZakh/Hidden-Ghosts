@@ -62,9 +62,8 @@ fun NavHostController.navigateSingleTopTo(route: String) =
             saveState = true
         }
         launchSingleTop = true
-        restoreState = true
+        restoreState = false
     }
-
 
 private fun NavHostController.navigateToPlayScreen(level: Int) {
     this.navigateSingleTopTo("${Play.route}/$level")

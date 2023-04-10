@@ -1,5 +1,7 @@
 package com.example.hiddenghosts.ui.welcome
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.OnLifecycleEvent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.hiddenghosts.repo.Repository

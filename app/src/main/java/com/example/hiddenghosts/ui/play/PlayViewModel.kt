@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.hiddenghosts.data.LevelInfo
 import com.example.hiddenghosts.repo.Repository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,11 +27,14 @@ class PlayViewModel @Inject constructor(
     private var listenClicks = true
     private var gridItemsList: MutableList<Boolean> = mutableListOf()
     private var statesList: MutableList<GridState> = mutableListOf()
+    private var currentLevel: Int = 0
+    private val defaultDispatcher = Dispatchers.Default
 
     fun startGame(level: Int) {
         viewModelScope.launch {
             _uiState.value = PlayUIState.Loading
             val list = generateGhostsList(level)
+            currentLevel = level
             gridItemsList = list
             statesList = list.map { GridState.DEFAULT }.toMutableList()
             _uiState.value = PlayUIState.Preview(
@@ -38,43 +42,52 @@ class PlayViewModel @Inject constructor(
             )
             delay(1000)
             score = 0
-            _uiState.value = PlayUIState.Playing(items = statesList, score = score)
+            _uiState.value = PlayUIState.Playing(items = statesList.toList(), score = score)
             listenClicks = true
         }
     }
 
     fun onItemClick(index: Int) {
         if (!listenClicks) return
-        viewModelScope.launch {
-            listenClicks = false
-            if (gridItemsList[index]) {
-                score += 5
-                statesList[index] = GridState.SUCCESS
-            } else {
-                statesList[index] = GridState.WRONG
-            }
-            var opened = 0
-            statesList.forEach { if (it != GridState.DEFAULT) opened += 1 }
-            if (opened < (levelInfo?.ghosts ?: 0)) {
-                _uiState.update { PlayUIState.Playing(items = statesList, score = score) }
-                listenClicks = true
-            } else {
-                gridItemsList.forEachIndexed { ind, item ->
-                    if (item) {
-                        val old = statesList[ind]
-                        if (old == GridState.DEFAULT) {
-                            statesList[index] = GridState.PREVIEW
-                        }
+        listenClicks = false
+        if (gridItemsList[index]) {
+            score += 5
+            statesList[index] = GridState.SUCCESS
+        } else {
+            statesList[index] = GridState.WRONG
+        }
+        var opened = 0
+        statesList.forEach { if (it != GridState.DEFAULT) opened += 1 }
+        if (opened < (levelInfo?.ghosts ?: 0)) {
+            _uiState.update { PlayUIState.Playing(items = statesList.toList(), score = score) }
+            listenClicks = true
+        } else {
+            gridItemsList.forEachIndexed { ind, item ->
+                if (item) {
+                    val old = statesList[ind]
+                    if (old == GridState.DEFAULT) {
+                        statesList[ind] = GridState.PREVIEW
                     }
                 }
-                _uiState.update {
-                    PlayUIState.Finish(
-                        items = statesList,
-                        score = score,
-                        opened == (levelInfo?.ghosts ?: 0)
-                    )
-                }
-                //TODO if win save to shared preferences
+            }
+            val passedLevel = !statesList.contains(GridState.PREVIEW)
+            _uiState.update {
+                PlayUIState.Finish(
+                    items = statesList,
+                    score = score,
+                    passed = passedLevel
+                )
+            }
+            if (passedLevel) saveLevelToSharedPref()
+        }
+    }
+
+    private fun saveLevelToSharedPref() {
+        viewModelScope.launch(defaultDispatcher) {
+            if (currentLevel < 5) {
+                repository.saveLevel(currentLevel + 1)
+            } else {
+                currentLevel
             }
         }
     }

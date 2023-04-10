@@ -21,10 +21,6 @@ class GhostActivity : ComponentActivity() {
                     navController = navController,
                 )
             }
-            rememberSystemUiController().apply {
-                setSystemBarsColor(GhostColor.PrimaryColor)
-                setSystemBarsColor(GhostColor.PrimaryColor)
-            }
         }
     }
 }

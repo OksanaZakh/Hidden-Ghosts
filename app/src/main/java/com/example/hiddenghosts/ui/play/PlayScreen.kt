@@ -26,6 +26,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.hiddenghosts.R
 import com.example.hiddenghosts.ui.theme.*
 import kotlinx.coroutines.delay
+import kotlin.random.Random
 
 @Composable
 fun PlayScreen(
@@ -155,7 +156,7 @@ fun PreviewCard(
                 .fillMaxSize()
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_ghost_1),
+                painter = painterResource(getGhostId(Random.nextInt(5))),
                 contentDescription = null
             )
         }
@@ -219,9 +220,17 @@ fun SuccessCard(
                 .fillMaxSize()
         ) {
             Image(
-                painter = painterResource(id = R.drawable.ic_ghost_1),
+                painter = painterResource(getGhostId(Random.nextInt(5))),
                 contentDescription = null
             )
         }
     }
+}
+
+private fun getGhostId(randomNam: Int): Int = when (randomNam) {
+    0 -> R.drawable.ic_ghost_1
+    1 -> R.drawable.ic_ghost_2
+    2 -> R.drawable.ic_ghost_3
+    3 -> R.drawable.ic_ghost_4
+    else -> R.drawable.ic_ghost_5
 }
