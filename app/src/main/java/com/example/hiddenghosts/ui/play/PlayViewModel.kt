@@ -40,7 +40,7 @@ class PlayViewModel @Inject constructor(
             _uiState.value = PlayUIState.Preview(
                 items = list.map { if (it) GridState.PREVIEW else GridState.DEFAULT }
             )
-            delay(1000)
+            delay(PREVIEW_TIME)
             score = 0
             _uiState.value = PlayUIState.Playing(items = statesList.toList(), score = score)
             listenClicks = true
@@ -50,35 +50,13 @@ class PlayViewModel @Inject constructor(
     fun onItemClick(index: Int) {
         if (!listenClicks) return
         listenClicks = false
-        if (gridItemsList[index]) {
-            score += 5
-            statesList[index] = GridState.SUCCESS
-        } else {
-            statesList[index] = GridState.WRONG
-        }
-        var opened = 0
-        statesList.forEach { if (it != GridState.DEFAULT) opened += 1 }
+        updateItem(index)
+        val opened = getOpenedItems()
         if (opened < (levelInfo?.ghosts ?: 0)) {
             _uiState.update { PlayUIState.Playing(items = statesList.toList(), score = score) }
             listenClicks = true
         } else {
-            gridItemsList.forEachIndexed { ind, item ->
-                if (item) {
-                    val old = statesList[ind]
-                    if (old == GridState.DEFAULT) {
-                        statesList[ind] = GridState.PREVIEW
-                    }
-                }
-            }
-            val passedLevel = !statesList.contains(GridState.PREVIEW)
-            _uiState.update {
-                PlayUIState.Finish(
-                    items = statesList,
-                    score = score,
-                    passed = passedLevel
-                )
-            }
-            if (passedLevel) saveLevelToSharedPref()
+            setUpFinishState()
         }
     }
 
@@ -89,6 +67,41 @@ class PlayViewModel @Inject constructor(
             } else {
                 currentLevel
             }
+        }
+    }
+
+    private fun setUpFinishState() {
+        gridItemsList.forEachIndexed { ind, item ->
+            if (item) {
+                val old = statesList[ind]
+                if (old == GridState.DEFAULT) {
+                    statesList[ind] = GridState.PREVIEW
+                }
+            }
+        }
+        val passedLevel = !statesList.contains(GridState.PREVIEW)
+        _uiState.update {
+            PlayUIState.Finish(
+                items = statesList,
+                score = score,
+                passed = passedLevel
+            )
+        }
+        if (passedLevel) saveLevelToSharedPref()
+    }
+
+    private fun getOpenedItems(): Int {
+        var opened = 0
+        statesList.forEach { if (it != GridState.DEFAULT) opened += 1 }
+        return opened
+    }
+
+    private fun updateItem(index: Int) {
+        if (gridItemsList[index]) {
+            score += 5
+            statesList[index] = GridState.SUCCESS
+        } else {
+            statesList[index] = GridState.WRONG
         }
     }
 
@@ -112,6 +125,10 @@ class PlayViewModel @Inject constructor(
             if (!list.contains(item)) list.add(item)
         }
         return list
+    }
+
+    companion object {
+        private const val PREVIEW_TIME = 1000L
     }
 }
 

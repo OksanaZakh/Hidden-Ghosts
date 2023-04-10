@@ -43,7 +43,7 @@ fun PlayScreen(
     (uiState as? PlayUIState.Finish)?.let {
         LaunchedEffect(Unit) {
             delay(2000)
-            onFinish.invoke(it.score, (level ?: 0) + 1)
+            onFinish.invoke(it.score, if (it.passed) (level ?: 0) + 1 else level ?: 0)
         }
     }
 
